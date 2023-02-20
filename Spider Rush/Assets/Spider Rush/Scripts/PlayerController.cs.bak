@@ -1,0 +1,128 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+class PlayerController : MonoBehaviour
+{
+    public bool gameOver;
+
+    public float speed = 15.0f; // Initial speed of the player
+    public float zBound = 30;
+    public GameObject projectilePrefab;
+
+    private Rigidbody playerRb;
+    public float lives = 3;
+    public float points = 0;
+    public float levelUpThreshold = 50.0f; // Threshold for leveling up
+
+    // Store the player's current level
+    private int currentLevel = 1;
+
+    // Store the player's current movement input
+    private float moveX = 0f;
+    private float moveZ = 0f;
+
+    void Start()
+    {
+        playerRb = GetComponent<Rigidbody>();
+        Debug.Log("Lives: 3     Points: 0");
+    }
+
+    void Update()
+    {
+        GetInput();
+        MovePlayer();
+        ConstraintPlayerPosition(); //boundaries for player to move
+        SpawnWeb(); // spawns the projectile
+
+        // Check if the player has reached the level up threshold
+        if (points >= levelUpThreshold)
+        {
+            LevelUp();
+        }
+    }
+
+    void GetInput()
+    {
+        moveX = Input.GetAxis("Horizontal");
+        moveZ = Input.GetAxis("Vertical");
+    }
+
+    void MovePlayer()
+    {
+        if (!gameOver)
+        {
+            playerRb.velocity = new Vector3(moveX, 0, moveZ) * speed;
+        }
+    }
+
+    void ConstraintPlayerPosition()
+    {
+        if (transform.position.z > zBound)
+        {
+            transform.position = new Vector3(transform.position.x, transform.position.y, zBound);
+        }
+
+        if (transform.position.z < -zBound)
+        {
+            transform.position = new Vector3(transform.position.x, transform.position.y, -zBound);
+        }
+    }
+
+    void SpawnWeb()
+    {
+		Vector3 offset = transform.position + new Vector3(0,0,2);
+        if (Input.GetKeyDown(KeyCode.Space) && !gameOver)
+        {
+            Instantiate(projectilePrefab, transform.position, projectilePrefab.transform.rotation);
+        }
+    }
+
+    void LevelUp()
+    {
+        // Increase the player's level by 1
+        currentLevel++;
+
+        // Increase the player's speed by 5
+        speed += 5;
+
+        // Reset the points to 0
+        points = 0;
+
+        // Increase the level up threshold by 50
+        levelUpThreshold += 50;
+
+        Debug.Log("Congratulations! You have reached level " + currentLevel.ToString() + "!");
+        Debug.Log("Your speed has increased to " + speed.ToString() + " and your new level up threshold is " + levelUpThreshold.ToString() + " points.");
+    }
+
+    void OnCollisionEnter(Collision other)
+    {
+        if (other.gameObject.CompareTag("Enemies"))
+        {
+            Debug.Log("Lives: " + (--lives).ToString() + "     Points: " + points.ToString());
+
+            if (lives == 0)
+            {
+                gameOver = true;
+                Debug.Log("Game Over. Your final score is " + points.ToString());
+            }
+        }
+
+        else if (other.gameObject.CompareTag("Life"))
+        {
+            Debug.Log("Lives: " + (++lives).ToString() + "     Points: " + points.ToString());
+            Destroy(other.gameObject);
+        }
+
+        else if (other.gameObject.CompareTag("Points"))
+        {
+            Debug.Log("Lives: " + lives.ToString() + "     Points: " + (points += 10).ToString());
+            Destroy(other.gameObject);
+        }
+    }
+}
+
+
+
